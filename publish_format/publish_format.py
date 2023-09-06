@@ -146,7 +146,7 @@ class Module(Item):
         taxonomy = {}
         taxonomy_file = module_dir / "_meta/fields.yml"
         if taxonomy_file.exists():
-            taxonomy = read_yaml(taxonomy_file)
+            taxonomy = read_yaml(taxonomy_file) or {}
         else:
             logger.warning("No taxonomy found for the module", module_name=module_dir.name)
 
