@@ -3,16 +3,15 @@ name = "publish-format"
 version = "0.0.0"
 description = ""
 authors = []
-packages = [{include = "publish_format"}]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
 requests = "^2.28.2"
-typer = "^0.7.0"
-rich = "^13.2.0"
-structlog = "^22.3.0"
+typer = "^0.11.1"
+rich = "^13.7.1"
+structlog = "^24.1.0"
 pyyaml = "^6.0"
-
 
 [build-system]
 requires = ["poetry-core"]
