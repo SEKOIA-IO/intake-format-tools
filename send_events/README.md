@@ -25,7 +25,7 @@ Commands:
 Each test file `["input"]["message"]` will be sent as an event.
 
 ```console
-send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
+poetry run send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
 ```
 
 ### From text file
@@ -33,7 +33,7 @@ send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sen
 Each line will be sent as an event
 
 ```console
-send_events.py from-text-file "<intake-key>" ../Downloads/stormshield.txt
+poetry run send_events.py from-text-file "<intake-key>" ~/Downloads/stormshield.txt
 ```
 
 ### From the terminal
@@ -41,5 +41,5 @@ send_events.py from-text-file "<intake-key>" ../Downloads/stormshield.txt
 Send one line from the terminal
 
 ```console
- send_events.py from-cli "<intake-key>" '<event>'
+poetry run send_events.py from-cli "<intake-key>" '<event>'
 ```
