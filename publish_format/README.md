@@ -19,3 +19,21 @@ poetry run python3 publish_format.py intake-formats/SentinelOne/sentinelone/ '<A
 ```console
 poetry run python3 publish_format.py --prod intake-formats/SentinelOne/sentinelone/ '<api-key>'
 ```
+
+### Publish the repo
+
+```console
+poetry run python3 publish_format.py intake-formats/ '<api-key>'
+```
+
+### Publish the repo to test without prompt
+
+```console
+poetry run python3 publish_format.py intake-formats/ --no-diff --allow-deployment '<api-key>'
+```
+
+### Publish the repo to prod without prompt
+
+```console
+poetry run python3 publish_format.py intake-formats/ --no-diff --allow-deployment --prod --allow-prod '<api-key>'
+```

@@ -2,9 +2,11 @@
 
 import difflib
 import json
+import os
 import sys
 from abc import ABC, abstractmethod, abstractproperty
 from dataclasses import dataclass
+from os.path import basename
 from pathlib import Path
 from typing import Any
 
@@ -146,16 +148,16 @@ class Module(Item):
         taxonomy = {}
         taxonomy_file = module_dir / "_meta/fields.yml"
         if taxonomy_file.exists():
-            taxonomy = read_yaml(taxonomy_file) or {}
+            taxonomy = read_yaml(taxonomy_file)
         else:
             logger.warning("No taxonomy found for the module", module_name=module_dir.name)
 
         logo_file = module_dir / "_meta/logo.png"
         if not logo_file.exists():
             raise OSError("Missing logo in the module")
-        elif logo_file.stat().st_size > 50000:
+        elif logo_file.stat().st_size > 51200:
             raise OSError(
-                f"Oversized module logo. expected lesser than 50k. got '{logo_file.stat().st_size}'"  # noqa: B028
+                f"Oversized module logo. expected lesser than 50kio. got '{logo_file.stat().st_size}'"  # noqa: B028
             )
 
         manifest = read_yaml(manifest_file)
@@ -175,6 +177,8 @@ class Format(Item):
     parser: dict
     datasources: list
     smartdescriptions: list | None
+    automation_module_uuid: str | None
+    automation_connector_uuid: str | None
 
     @property
     def type(self) -> str:
@@ -198,9 +202,9 @@ class Format(Item):
         logo_file = format_dir / "_meta/logo.png"
         if not logo_file.exists():
             raise OSError(f"Missing logo in the format '{format_dir.name}'")  # noqa: B028
-        elif logo_file.stat().st_size > 50000:
+        elif logo_file.stat().st_size > 51200:
             raise OSError(
-                f"Oversized format logo. expected lesser than 50k. got '{logo_file.stat().st_size}'"  # noqa: B028
+                f"Oversized format logo. expected lesser than 50kio. got '{logo_file.stat().st_size}'"  # noqa: B028
             )
 
         parser = None
@@ -213,7 +217,7 @@ class Format(Item):
         taxonomy = {}
         taxonomy_file = format_dir / "_meta/fields.yml"
         if taxonomy_file.exists():
-            taxonomy = read_yaml(taxonomy_file)
+            taxonomy = read_yaml(taxonomy_file) or {}
         else:
             logger.warning("No taxonomy found for the format", format_name=format_dir.name)
 
@@ -234,6 +238,8 @@ class Format(Item):
             uuid=manifest["uuid"],
             name=manifest["name"],
             slug=manifest["slug"],
+            automation_connector_uuid=manifest.get("automation_connector_uuid"),
+            automation_module_uuid=manifest.get("automation_module_uuid"),
             description=manifest["description"],
             parser=parser,
             datasources=datasources,
@@ -251,6 +257,8 @@ class Format(Item):
             "datasources": self.datasources,
             "taxonomy": self.taxonomy,
             "module_uuid": self.module.uuid,
+            "automation_connector_uuid": self.automation_connector_uuid,
+            "automation_module_uuid": self.automation_module_uuid,
         }
 
         if self.parser:
@@ -320,6 +328,14 @@ class Client:
             verify=self.verify,
         )
 
+    def update_format_privacy(self, intake_format: Format, public: bool) -> requests.Response:
+        return requests.post(
+            f"{self.base_url}/{intake_format.url_path}/{intake_format.uuid}/privacy",
+            json={"public": public},
+            headers=self.headers,
+            verify=self.verify,
+        )
+
 
 def update_module(client: Client, module: Module, differ: Differ):
     if not differ.bypass:
@@ -327,6 +343,7 @@ def update_module(client: Client, module: Module, differ: Differ):
         if get_response.status_code > 399 and get_response.status_code != 404:
             logger.error(
                 "Failed to get module",
+                module_name=module.name,
                 module_uuid=module.uuid,
                 status_code=get_response.status_code,
                 body=get_response.text,
@@ -356,6 +373,7 @@ def update_module(client: Client, module: Module, differ: Differ):
     if update_response.status_code == 200:
         logger.info(
             "Module updated",
+            module_name=module.name,
             module_uuid=module.uuid,
             status_code=update_response.status_code,
         )
@@ -364,6 +382,7 @@ def update_module(client: Client, module: Module, differ: Differ):
         if update_response.status_code == 200:
             logger.info(
                 "Module created",
+                module_name=module.name,
                 module_uuid=module.uuid,
                 status_code=update_response.status_code,
             )
@@ -371,6 +390,7 @@ def update_module(client: Client, module: Module, differ: Differ):
     if update_response.status_code > 399:
         logger.error(
             "Failed to update module",
+            module_name=module.name,
             module_uuid=module.uuid,
             status_code=update_response.status_code,
             body=update_response.text,
@@ -384,6 +404,7 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
         if get_response.status_code > 399 and get_response.status_code != 404:
             logger.error(
                 "Failed to get Format",
+                format_name=intake_format.name,
                 format_uuid=intake_format.uuid,
                 status_code=get_response.status_code,
                 body=get_response.text,
@@ -398,6 +419,8 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
                 "slug": content.get("slug"),
                 "description": content.get("description"),
                 "datasources": content.get("datasources"),
+                "automation_module_uuid": content.get("automation_module_uuid"),
+                "automation_connector_uuid": content.get("automation_connector_uuid"),
             },
             {
                 "uuid": intake_format.uuid,
@@ -405,6 +428,8 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
                 "slug": intake_format.slug,
                 "description": intake_format.description,
                 "datasources": intake_format.datasources,
+                "automation_module_uuid": intake_format.automation_module_uuid,
+                "automation_connector_uuid": intake_format.automation_connector_uuid,
             },
             "format",
         ):
@@ -423,6 +448,7 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
     if update_response.status_code == 200:
         logger.info(
             "Format updated",
+            format_name=intake_format.name,
             format_uuid=intake_format.uuid,
             status_code=update_response.status_code,
         )
@@ -431,6 +457,7 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
         if update_response.status_code == 200:
             logger.info(
                 "Format created",
+                format_name=intake_format.name,
                 format_uuid=intake_format.uuid,
                 status_code=update_response.status_code,
             )
@@ -438,6 +465,7 @@ def update_format(client: Client, intake_format: Format, differ: Differ):
     if update_response.status_code > 399:
         logger.error(
             "Failed to update Format",
+            format_name=intake_format.name,
             format_uuid=intake_format.uuid,
             status_code=update_response.status_code,
             body=update_response.text,
@@ -471,6 +499,7 @@ def update_smartdescriptions(client: Client, intake_format: Format, differ: Diff
         if get_response.status_code > 399 and get_response.status_code != 404:
             logger.error(
                 "Failed to get smart-descriptions",
+                format_name=intake_format.name,
                 format_uuid=intake_format.uuid,
                 status_code=get_response.status_code,
                 body=get_response.text,
@@ -489,12 +518,14 @@ def update_smartdescriptions(client: Client, intake_format: Format, differ: Diff
     if update_response.status_code == 200:
         logger.info(
             "Smart-descriptions updated",
+            format_name=intake_format.name,
             format_uuid=intake_format.uuid,
             status_code=update_response.status_code,
         )
     elif update_response.status_code > 399:
         logger.error(
             "Failed to update smart-descriptions",
+            format_name=intake_format.name,
             format_uuid=intake_format.uuid,
             status_code=update_response.status_code,
             body=update_response.text,
@@ -502,13 +533,88 @@ def update_smartdescriptions(client: Client, intake_format: Format, differ: Diff
         sys.exit(41)
 
 
-def publish_format(format: Path, platform_url: str, apikey: str, ssl_verify: bool, differ: Differ):
+def update_format_privacy(client: Client, intake_format: Format, differ: Differ, public: bool):
+    if not differ.bypass:
+        get_response = client.get(intake_format)
+        if get_response.status_code > 399 and get_response.status_code != 404:
+            logger.error(
+                "Failed to get format information",
+                format_name=intake_format.name,
+                format_uuid=intake_format.uuid,
+                status_code=get_response.status_code,
+                body=get_response.text,
+            )
+            sys.exit(42)
+
+        if not differ.validate(
+            get_response.json().get("community_uuid") is None,
+            public,
+            "privacy",
+        ):
+            logger.info("Diff not validated. Privacy not updated")
+            return
+
+    update_response = client.update_format_privacy(intake_format, public)
+    if update_response.status_code == 200:
+        logger.info(
+            "Format privacy updated",
+            format_name=intake_format.name,
+            format_uuid=intake_format.uuid,
+            status_code=update_response.status_code,
+        )
+    elif update_response.status_code > 399:
+        logger.error(
+            "Failed to update format privacy",
+            format_name=intake_format.name,
+            format_uuid=intake_format.uuid,
+            status_code=update_response.status_code,
+            body=update_response.text,
+        )
+        sys.exit(41)
+
+
+def publish_every_formats(
+    format: Path,
+    platform_url: str,
+    apikey: str,
+    ssl_verify: bool,
+    differ: Differ,
+    public: bool,
+    allow_deployment: bool,
+):
+    excluded_dirs = {"utils", ".git"}
+    for root, _dirs, _ in os.walk(format):
+        format_path = Path(root)
+        # the format dir should contain a number of directory to be usable
+        # the format path should not contain an exluded dir
+        if not {"ingest", "_meta", "tests"}.issubset(set(_dirs)) or bool(
+            set(format_path.parts).intersection(excluded_dirs)
+        ):
+            continue
+
+        if (
+            allow_deployment is False
+            and typer.prompt(f"You are about to deploy {format_path}. Continue? [y/n]").lower() == "n"
+        ):
+            raise typer.Exit()
+
+        publish_format(
+            format=format_path,
+            platform_url=platform_url,
+            apikey=apikey,
+            ssl_verify=ssl_verify,
+            differ=differ,
+            public=public,
+        )
+
+
+def publish_format(format: Path, platform_url: str, apikey: str, ssl_verify: bool, differ: Differ, public: bool):
     client = Client(platform_url, apikey, ssl_verify)
 
     try:
         intake_format = Format.from_format_dir(format)
     except OSError:
-        logger.exception("Failed to publish format")
+        logger.exception(f"Failed to publish format {format}")
         sys.exit(10)
 
     update_module(client, intake_format.module, differ)
@@ -517,7 +623,8 @@ def publish_format(format: Path, platform_url: str, apikey: str, ssl_verify: boo
     update_logo(client, intake_format)
     if intake_format.smartdescriptions:
         update_smartdescriptions(client, intake_format, differ)
-    sys.exit(0)
+    if public:
+        update_format_privacy(client, intake_format, differ, public)
 
 
 def main(
@@ -527,6 +634,9 @@ def main(
     insecure: bool = False,
     host: str = None,
     no_diff: bool = False,
+    public: bool = False,
+    allow_prod: bool = False,
+    allow_deployment: bool = False,
 ):
     """
     Publish new format to ingestAPI.
@@ -536,6 +646,9 @@ def main(
     If --insecure is used, it disables SSL verification (develop/test purpose)
     If --host is used, it takes a custom host
     If --no-diff is used, the changes will be not be displayed
+    If --public is used, the format privacy will be updated
+    If --allow-prod is used, the production the warning prompt is skipped
+    If --allow-deployment is used, the deployment warning is skipped
     """
     url = "https://app.test.sekoia.io"
     ssl_verify = True
@@ -548,14 +661,20 @@ def main(
 
     if prod:
         url = "https://app.sekoia.io"
-        if typer.prompt("You are about to publish this format to production. Continue? [y/n]").lower() == "n":
+        typer.echo("You are about to publish to production.")
+        if allow_prod is False and typer.prompt(" Continue? [y/n]").lower() == "n":
             raise typer.Exit()
 
     differ: Differ = AskForDiff(Console())
     if no_diff:
         differ = AlwaysValidateDiff()
-
-    publish_format(format_path, url, apikey, ssl_verify, differ)
+    if basename(format_path) == "intake-formats":
+        typer.echo("You are about to deploy every formats.")
+        if allow_deployment is False and typer.prompt("Continue? [y/n]").lower() == "n":
+            raise typer.Exit()
+        publish_every_formats(format_path, url, apikey, ssl_verify, differ, public, allow_deployment)
+    else:
+        publish_format(format_path, url, apikey, ssl_verify, differ, public)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ Options:
   --show-completion     Show completion for the current shell, to copy it or
                         customize the installation.
   --help                Show this message and exit.
+  --prod                Send events to prod (test by default)
 
 Commands:
   from-cli
@@ -24,7 +25,7 @@ Commands:
 Each test file `["input"]["message"]` will be sent as an event.
 
 ```console
-poetry run python3 send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
+poetry run send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
 ```
 
 ### From text file
@@ -32,7 +33,7 @@ poetry run python3 send_events.py from-intake-formats "<intake-key>" intake-form
 Each line will be sent as an event
 
 ```console
-poetry run python3 send_events.py from-text-file "<intake-key>" ../Downloads/stormshield.txt
+poetry run send_events.py from-text-file "<intake-key>" ~/Downloads/stormshield.txt
 ```
 
 ### From the terminal
@@ -40,5 +41,5 @@ poetry run python3 send_events.py from-text-file "<intake-key>" ../Downloads/sto
 Send one line from the terminal
 
 ```console
-poetry run python3 send_events.py from-cli "<intake-key>" '<event>'
+poetry run send_events.py from-cli "<intake-key>" '<event>'
 ```

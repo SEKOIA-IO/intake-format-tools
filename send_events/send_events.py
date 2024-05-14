@@ -22,7 +22,7 @@ session.mount("https://", HTTPAdapter(max_retries=retries))
 def read_input_messages(intake_path: Path) -> list:
     # iterate over files in
     # that directory
-    events: list = list()
+    events: list = []
     intake_tests_path = f"{intake_path}/tests"
     for filename in os.listdir(intake_tests_path):
         f: str = os.path.join(intake_tests_path, filename)
@@ -45,7 +45,6 @@ def chunk_events(events: Sequence, chunk_size: int) -> Generator[list[Any], None
 
     # iter over the events
     for event in events:
-
         # if the chunk is full
         if len(chunk) >= chunk_size:
             # yield the current chunk and create a new one
