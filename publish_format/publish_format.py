@@ -1,4 +1,13 @@
-#!/usr/bin/env python
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "pyyaml>=6.0.3",
+#     "requests>=2.33.1",
+#     "rich>=15.0.0",
+#     "structlog>=25.5.0",
+#     "typer>=0.25.1",
+# ]
+# ///
 
 import difflib
 import json
