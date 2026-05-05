@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#     "requests>=2.33.1",
+#     "typer>=0.25.1",
+# ]
+# ///
 import json
 import os
 from collections.abc import Generator, Sequence

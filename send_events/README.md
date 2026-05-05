@@ -18,6 +18,11 @@ Commands:
   from-text-file
 ```
 
+## Getting started
+
+To ease the installation of tools, this project relies on [mise-en-place](https://mise.jdx.dev/).
+Please follow the [getting started](https://mise.jdx.dev/getting-started.html) to install and set up mise-en-place.
+
 ## Example
 
 ### From intake-formats input files
@@ -25,7 +30,7 @@ Commands:
 Each test file `["input"]["message"]` will be sent as an event.
 
 ```console
-poetry run send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
+uv run send_events.py from-intake-formats "<intake-key>" intake-formats/SentinelOne/sentinelone/
 ```
 
 ### From text file
@@ -33,7 +38,7 @@ poetry run send_events.py from-intake-formats "<intake-key>" intake-formats/Sent
 Each line will be sent as an event
 
 ```console
-poetry run send_events.py from-text-file "<intake-key>" ~/Downloads/stormshield.txt
+uv run send_events.py from-text-file "<intake-key>" ~/Downloads/stormshield.txt
 ```
 
 ### From the terminal
@@ -41,5 +46,5 @@ poetry run send_events.py from-text-file "<intake-key>" ~/Downloads/stormshield.
 Send one line from the terminal
 
 ```console
-poetry run send_events.py from-cli "<intake-key>" '<event>'
+uv run send_events.py from-cli "<intake-key>" '<event>'
 ```
